@@ -30,12 +30,12 @@ enum OP {    // defined operations
   , AND  // AND rs, rt:  rt &= rs
   , OR   // OR  rs, rt:  rt |= rs
   , XOR  // XOR rs, rt:  rt ^= rs
-  , NOT
+  , NOT  // NOT rt:      rt ~= rt
   
   , ROR  // ROR rs, rt: Right rotation of rt by value of rs.
   , ROL  // ROL rs, rt: Left rotation of rt by value of rs.
   , SR   // SR  rs, rt: Right shift of rt by value of rs.
-  , SL   // SL  ls, rt, Left shift of rt by value of rs
+  , SL   // SL  rs, rt, Left shift of rt by value of rs
   
   , JMP  // JMP mem: Loads ip with value of memory address.
   , JZ   // JZ  mem: Loads ip with value of memory address if zero flag == 0
@@ -44,9 +44,9 @@ enum OP {    // defined operations
   , GT   // GT rx, ry: If rx is greater than ry, cmp-flag == 1.
   , LT   // LT rx, ry: If rx is greater than ry, cmp-flag == 1.
   
-  , POP   // POP rs
-  , PUSH  // PUSH rt
-  , PEEK  // PEEK rt
+  , POP   // POP  rs:  // Remove stack value and store into register.
+  , PUSH  // PUSH rt:  // Add register value to stack.
+  , PEEK  // PEEK rt:  // Load stack value into register.
 };
 
 void perform_instruction()
@@ -162,6 +162,11 @@ void perform_instruction()
             ++ r[ip];
             rt = mem[ip];
             r[rt] ^= r[rs];
+            break;
+            
+        case NOT:   // ~rt
+            rt = mem[ip];
+            r[rt] = ~r[rt];
             break;
             
             
