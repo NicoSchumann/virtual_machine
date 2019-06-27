@@ -1,53 +1,6 @@
+#include "machine.hpp"
+
 #include <iostream>
-#include <cstdint>
-
-using Int_t = std::int16_t;
-
-enum reg { a, b, c, d, ip, sp, flags };
-namespace f { enum reg_flags { zf = 1, cf = 2, cmp = 4}; }
-
-Int_t r [7] = {0}; // Registers a, b, c, d, ip, sp, flags;
-Int_t mem [4096];  // the memory pool
-
-
-enum OP {    // defined operations
-
-    NOP  // No operation
-    
-  , MOV  // MOV rs,  rt: Move source register to target register.
-  , LD   // LD  val, rt: Load value to target register
-  , LDR  // LDR mem, rt: Load value of memory address to target register.
-  , LDM  // LDM rs, mem: Save target register to memory address.
-  
-  , ADD  // ADD rs, rt: Add source register to target register.
-  , SUB  // SUB rs, rt: Subtract source register from target register.
-  , MUL  // MUL rs, rt: Multiply source register to target register.
-  , DIV  // DIV rs, rt: Divide target register by source register. 
-  , MOD  // MOD rs, rt: Divide target register modulo by source register.
-  , INC  // INC rt
-  , DEC  // DEC rt
-  
-  , AND  // AND rs, rt:  rt &= rs
-  , OR   // OR  rs, rt:  rt |= rs
-  , XOR  // XOR rs, rt:  rt ^= rs
-  , NOT  // NOT rt:      rt ~= rt
-  
-  , ROR  // ROR rs, rt: Right rotation of rt by value of rs.
-  , ROL  // ROL rs, rt: Left rotation of rt by value of rs.
-  , SR   // SR  rs, rt: Right shift of rt by value of rs.
-  , SL   // SL  rs, rt, Left shift of rt by value of rs
-  
-  , JMP  // JMP mem: Loads ip with value of memory address.
-  , JZ   // JZ  mem: Loads ip with value of memory address if zero flag == 0
-  , JNZ  // JNZ mem: Loads ip with value of memory address if zero flag == 1
-  , CMP  // CMP rx, ry: If rx == ry, the cmp-flag == 1.
-  , GT   // GT rx, ry: If rx is greater than ry, cmp-flag == 1.
-  , LT   // LT rx, ry: If rx is greater than ry, cmp-flag == 1.
-  
-  , POP   // POP  rs:  // Remove stack value and store into register.
-  , PUSH  // PUSH rt:  // Add register value to stack.
-  , PEEK  // PEEK rt:  // Load stack value into register.
-};
 
 void perform_instruction()
 {
@@ -213,39 +166,54 @@ void perform_instruction()
          // jumping operations
          
        case JMP:   // JMP
-           r[ip] = mem[ip];
+           r[ip] = mem[r[ip]];
            break;
             
        case JZ:
-           if( !(r[flags] & f::zf) ) r[ip] = mem[ip];
+           if( r[flags] & f::zero ) r[ip] = mem[r[ip]];
            break;
            
        case JNZ:
-           if( r[flags] & f::zf ) r[ip] = mem[ip]; 
+           if( !(r[flags] & f::zero) ) r[ip] = mem[r[ip]];
            break;
            
-       case CMP:   // CMP rx, ry
+       case JE:  // jump if equal
+           if( r[flags] & f::equal  ) r[ip] = mem[r[ip]];
+           break;
+       
+       case JNE:  // jump if not equal
+           if( !(r[flags] & f::equal) ) r[ip] = mem[r[ip]];
+           break;
+       
+       case JG:   // jump if greater
+           if( r[flags] & f::greater ) r[ip] = mem[r[ip]];
+           break;
+       
+       case JLE:   // jump if not greater (lower or equal)
+           if( !(r[flags] & f::greater) ) r[ip] = mem[r[ip]];
+           break;
+       
+       case JL:   // jump if lower
+           if( r[flags] & f::lower ) r[ip] = mem[r[ip]];
+           break;
+       
+       case JGE:   // jump if not lower (greater or equal)
+          if( !(r[flags] & f::lower) ) r[ip] = mem[r[ip]];
+          break;
+       
+        
+          // comparing operations
+             
+       case CMP:   // CMP rs, rt of equal-, greater-, and lower than
            rs = mem[ip];
            ++ r[ip];
            rt = mem[ip];
-           if( r[rt] == r[rs] ) r[flags] |= f::cmp;
-           else r[flags] &= -1 & ~f::cmp;
-           break;
-           
-       case GT:  // GT rx, ry
-           rs = mem[ip];
-           ++ r[ip];
-           rt = mem[ip];
-           if( r[rt] > r[rs] ) r[flags] |= f::cmp;
-           else r[flags] &= -1 & ~f::cmp;
-           break;
-           
-       case LT: // LT rx, ry
-           rs = mem[ip];
-           ++ r[ip];
-           rt = mem[ip];
-           if( r[rt] < r[rs] ) r[flags] |= f::cmp;
-           else r[flags] &= -1 & ~f::cmp;
+           if( r[rt] == r[rs] ) r[flags] |= f::equal;  // setting equql flag
+           else r[flags] &= -1 & ~f::equal;           // clearing equal flag
+           if( r[rt] < r[rs] ) r[flags] |= f::lower;    // setting lower flag
+           else r[flags] &= -1 & ~f::lower;            // clearing lower flag
+           if( r[rt] > r[rs] )  r[flags] |= f::greater; // setting flag
+           else r[flags] &= -1 & ~f::greater;           // clearing flag
            break;
            
            
@@ -269,7 +237,7 @@ void perform_instruction()
            break;
            
        default:
-           std::cout << ip_v << ": operation not implemented.\n";
+           std::cout << ip_v << ": Operation not implemented.\n";
            break;
     }
 }
